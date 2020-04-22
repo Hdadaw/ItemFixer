@@ -175,7 +175,7 @@ public class ItemChecker {
 
     private boolean needIgnore(ItemStack stack) {
         Material m = stack.getType();
-        return (m == Material.BANNER || (!plugin.version.startsWith("v1_8_R") && (m == Material.SHIELD)));
+        return (m == Material.BANNER || (!plugin.isVersion1_8() && (m == Material.SHIELD)));
     }
 
     private void checkShulkerBox(ItemStack stack, Player p) {
@@ -234,7 +234,7 @@ public class ItemChecker {
 
     private boolean isShulkerBox(ItemStack stack, ItemStack rootStack) {
         if (stack == null || stack.getType() == Material.AIR) return false;
-        if (!plugin.isUnsupportedVersion()) return false;
+        if (plugin.isVersion1_8()) return false;
         if (!stack.hasItemMeta()) return false;
         try {
             if (!(stack.getItemMeta() instanceof BlockStateMeta)) return false;

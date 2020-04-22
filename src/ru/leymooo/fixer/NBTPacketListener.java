@@ -43,7 +43,7 @@ public class NBTPacketListener extends PacketAdapter {
         }
         if (event.getPacketType() == PacketType.Play.Client.SET_CREATIVE_SLOT && p.getGameMode() == GameMode.CREATIVE) {
             this.proccessSetCreativeSlot(event, p);
-        } else if (event.getPacketType() == PacketType.Play.Client.CUSTOM_PAYLOAD && !plugin.isUnsupportedVersion() && !p.hasPermission("itemfixer.bypass.packet")) {
+        } else if (event.getPacketType() == PacketType.Play.Client.CUSTOM_PAYLOAD && plugin.isVersion1_8() && !p.hasPermission("itemfixer.bypass.packet")) {
             this.proccessCustomPayload(event, p);
         }
     }

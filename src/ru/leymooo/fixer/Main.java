@@ -1,7 +1,6 @@
 package ru.leymooo.fixer;
 
 import com.comphenix.protocol.ProtocolLibrary;
-import com.comphenix.protocol.ProtocolManager;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
@@ -14,31 +13,29 @@ import java.io.File;
 public class Main extends JavaPlugin {
 
     private ItemChecker checker;
-    private ProtocolManager manager;
-    public String version;
+    private boolean version1_8;
 
     @Override
     public void onEnable() {
         saveDefaultConfig();
         checkNewConfig();
         PluginManager pmanager = Bukkit.getPluginManager();
-        version = Bukkit.getServer().getClass().getPackage().getName().split("\\.")[3];
+        String version = Bukkit.getServer().getClass().getPackage().getName().split("\\.")[3];
+        version1_8 = version.startsWith("v1_8_R");
         checker = new ItemChecker(this);
-        manager = ProtocolLibrary.getProtocolManager();
-        manager.addPacketListener(new NBTPacketListener(this));
+        ProtocolLibrary.getProtocolManager().addPacketListener(new NBTPacketListener(this));
         pmanager.registerEvents(new NBTBukkitListener(this), this);
-        pmanager.registerEvents(new TextureFix(version, this), this);
+        pmanager.registerEvents(new TextureFix(version), this);
         Bukkit.getConsoleSender().sendMessage("§b[ItemFixer] §aenabled");
     }
 
     @Override
     public void onDisable() {
         HandlerList.unregisterAll(this);
-        manager.removePacketListeners(this);
+        ProtocolLibrary.getProtocolManager().removePacketListeners(this);
         NBTPacketListener.cancel.invalidateAll();
         NBTPacketListener.cancel = null;
         checker = null;
-        manager = null;
     }
 
     public boolean checkItem(ItemStack stack, Player p) {
@@ -58,7 +55,7 @@ public class Main extends JavaPlugin {
         }
     }
 
-    public boolean isUnsupportedVersion() {
-        return version.startsWith("v1_11_R") || version.startsWith("v1_12_R") || version.startsWith("v1_13_R");
+    public boolean isVersion1_8() {
+        return version1_8;
     }
 }
