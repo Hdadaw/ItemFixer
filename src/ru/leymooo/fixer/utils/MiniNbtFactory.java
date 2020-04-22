@@ -1,20 +1,18 @@
 package ru.leymooo.fixer.utils;
 
-
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-
-import org.bukkit.inventory.ItemStack;
-
 import com.comphenix.protocol.reflect.StructureModifier;
 import com.comphenix.protocol.wrappers.nbt.NbtBase;
 import com.comphenix.protocol.wrappers.nbt.NbtFactory;
 import com.comphenix.protocol.wrappers.nbt.NbtWrapper;
+import org.bukkit.inventory.ItemStack;
+
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 
 public class MiniNbtFactory {
-    
+
     private static Method m;
-    
+
     static {
         try {
             m = NbtFactory.class.getDeclaredMethod("getStackModifier", ItemStack.class);
@@ -23,9 +21,9 @@ public class MiniNbtFactory {
             e.printStackTrace();
         }
     }
-    
+
     @SuppressWarnings("unchecked")
-    public static NbtWrapper<?> fromItemTag(ItemStack stack) {        
+    public static NbtWrapper<?> fromItemTag(ItemStack stack) {
         StructureModifier<NbtBase<?>> modifier = null;
         try {
             modifier = (StructureModifier<NbtBase<?>>) m.invoke(null, stack);

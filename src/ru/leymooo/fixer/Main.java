@@ -1,7 +1,7 @@
 package ru.leymooo.fixer;
 
-import java.io.File;
-
+import com.comphenix.protocol.ProtocolLibrary;
+import com.comphenix.protocol.ProtocolManager;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
@@ -9,8 +9,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import com.comphenix.protocol.ProtocolLibrary;
-import com.comphenix.protocol.ProtocolManager;
+import java.io.File;
 
 public class Main extends JavaPlugin {
 
@@ -26,7 +25,7 @@ public class Main extends JavaPlugin {
         version = Bukkit.getServer().getClass().getPackage().getName().split("\\.")[3];
         checker = new ItemChecker(this);
         manager = ProtocolLibrary.getProtocolManager();
-        manager.addPacketListener(new NBTListener(this, version));
+        manager.addPacketListener(new NBTPacketListener(this));
         pmanager.registerEvents(new NBTBukkitListener(this), this);
         pmanager.registerEvents(new TextureFix(version, this), this);
         Bukkit.getConsoleSender().sendMessage("§b[ItemFixer] §aenabled");
@@ -36,8 +35,8 @@ public class Main extends JavaPlugin {
     public void onDisable() {
         HandlerList.unregisterAll(this);
         manager.removePacketListeners(this);
-        NBTListener.cancel.invalidateAll();
-        NBTListener.cancel = null;
+        NBTPacketListener.cancel.invalidateAll();
+        NBTPacketListener.cancel = null;
         checker = null;
         manager = null;
     }
@@ -48,7 +47,7 @@ public class Main extends JavaPlugin {
 
     private void checkNewConfig() {
         if (!getConfig().isSet("ignored-tags")) {
-            File config = new File(getDataFolder(),"config.yml");
+            File config = new File(getDataFolder(), "config.yml");
             config.delete();
             saveDefaultConfig();
         }
@@ -57,7 +56,7 @@ public class Main extends JavaPlugin {
             getConfig().set("max-pps-kick-msg", null);
             saveConfig();
         }
-    }   
+    }
 
     public boolean isUnsupportedVersion() {
         return version.startsWith("v1_11_R") || version.startsWith("v1_12_R") || version.startsWith("v1_13_R");

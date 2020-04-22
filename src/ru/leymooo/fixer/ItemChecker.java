@@ -1,12 +1,8 @@
 package ru.leymooo.fixer;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
+import com.comphenix.protocol.wrappers.nbt.NbtBase;
+import com.comphenix.protocol.wrappers.nbt.NbtCompound;
+import com.comphenix.protocol.wrappers.nbt.NbtList;
 import org.apache.commons.codec.binary.Base64;
 import org.bukkit.Color;
 import org.bukkit.FireworkEffect;
@@ -16,28 +12,22 @@ import org.bukkit.block.banner.Pattern;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.BannerMeta;
-import org.bukkit.inventory.meta.BlockStateMeta;
-import org.bukkit.inventory.meta.FireworkMeta;
-import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.inventory.meta.PotionMeta;
+import org.bukkit.inventory.meta.*;
 import org.bukkit.potion.PotionEffect;
-
-import com.comphenix.protocol.wrappers.nbt.NbtBase;
-import com.comphenix.protocol.wrappers.nbt.NbtCompound;
-import com.comphenix.protocol.wrappers.nbt.NbtList;
-
 import ru.leymooo.fixer.utils.MiniNbtFactory;
+
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class ItemChecker {
 
-    private Boolean removeInvalidEnch;
-    private Boolean checkench;
-    private HashSet<String> nbt = new HashSet<String>();
-    private HashSet<String> world = new HashSet<String>();
-    private HashSet<Material> tiles = new HashSet<Material>();
-    private HashSet<String> ignoreNbt = new HashSet<String>();
-    private Main plugin;
+    private final Boolean removeInvalidEnch;
+    private final Boolean checkench;
+    private final HashSet<String> nbt = new HashSet<>();
+    private final HashSet<String> world = new HashSet<>();
+    private final HashSet<Material> tiles = new HashSet<>();
+    private final HashSet<String> ignoreNbt = new HashSet<>();
+    private final Main plugin;
 
     public ItemChecker(Main main) {
         this.plugin = main;
@@ -121,8 +111,8 @@ public class ItemChecker {
             }
             for (Map.Entry<Enchantment, Integer> ench : enchantments.entrySet()) {
                 Enchantment enchant = ench.getKey();
-                String perm = "itemfixer.allow."+stack.getType().toString()+"."+enchant.getName()+"."+ench.getValue();
-                if (removeInvalidEnch && !enchant.canEnchantItem(stack) && !p.hasPermission(perm) ) {
+                String perm = "itemfixer.allow." + stack.getType().toString() + "." + enchant.getName() + "." + ench.getValue();
+                if (removeInvalidEnch && !enchant.canEnchantItem(stack) && !p.hasPermission(perm)) {
                     meta.removeEnchant(enchant);
                     cheat = true;
                 }
@@ -143,7 +133,7 @@ public class ItemChecker {
             Material mat = stack.getType();
             NbtCompound tag = (NbtCompound) MiniNbtFactory.fromItemTag(stack);
             if (tag == null) return false;
-            if(this.isCrashItem(stack, tag, mat)) {
+            if (this.isCrashItem(stack, tag, mat)) {
                 tag.getKeys().clear();
                 stack.setAmount(1);
                 return true;
@@ -155,7 +145,7 @@ public class ItemChecker {
                     cheat = true;
                 }
             }
-            if (tag.containsKey("BlockEntityTag") && !isShulkerBox(stack, stack) && !needIgnore(stack) && !ignoreNbt.contains("BlockEntityTag") ) {
+            if (tag.containsKey("BlockEntityTag") && !isShulkerBox(stack, stack) && !needIgnore(stack) && !ignoreNbt.contains("BlockEntityTag")) {
                 tag.remove("BlockEntityTag");
                 cheat = true;
             } else if (mat == Material.WRITTEN_BOOK && ((!ignoreNbt.contains("ClickEvent") && tagS.contains("ClickEvent"))
@@ -179,11 +169,11 @@ public class ItemChecker {
                     && (checkPotion(stack, p) || checkCustomColor(tag.getCompound("CustomPotionEffects")))) {
                 cheat = true;
             }
-        } catch (Exception e) {
+        } catch (Exception ignored) {
         }
         return cheat;
     }
-    
+
     private boolean needIgnore(ItemStack stack) {
         Material m = stack.getType();
         return (m == Material.BANNER || (!plugin.version.startsWith("v1_8_R") && (m == Material.SHIELD)));
@@ -202,7 +192,7 @@ public class ItemChecker {
             }
         }
     }
-    
+
     private boolean isPotion(ItemStack stack) {
         try {
             return stack.hasItemMeta() && stack.getItemMeta() instanceof PotionMeta;
@@ -211,7 +201,7 @@ public class ItemChecker {
             return false;
         }
     }
-    
+
     private boolean checkCustomColor(NbtCompound tag) {
         if (tag.containsKey("CustomPotionColor")) {
             int color = tag.getInteger("CustomPotionColor");
@@ -224,13 +214,13 @@ public class ItemChecker {
         }
         return false;
     }
-    
+
     private boolean checkPotion(ItemStack stack, Player p) {
         boolean cheat = false;
         if (!p.hasPermission("itemfixer.bypass.potion")) {
             PotionMeta meta = (PotionMeta) stack.getItemMeta();
             for (PotionEffect ef : meta.getCustomEffects()) {
-                String perm = "itemfixer.allow.".concat(ef.getType().toString()).concat(".").concat(String.valueOf(ef.getAmplifier()+1));
+                String perm = "itemfixer.allow." + ef.getType().toString() + "." + (ef.getAmplifier() + 1);
                 if (!p.hasPermission(perm)) {
                     meta.removeCustomEffect(ef.getType());
                     cheat = true;
@@ -273,7 +263,7 @@ public class ItemChecker {
         boolean cheat = false;
         if (meta instanceof BannerMeta) {
             BannerMeta bmeta = (BannerMeta) meta;
-            ArrayList<Pattern> patterns = new ArrayList<Pattern>();
+            ArrayList<Pattern> patterns = new ArrayList<>();
             for (Pattern pattern : bmeta.getPatterns()) {
                 if (pattern.getPattern() == null) {
                     cheat = true;
@@ -309,7 +299,7 @@ public class ItemChecker {
     }
 
     private boolean isCrashItem(ItemStack stack, NbtCompound tag, Material mat) {
-        if (stack.getAmount() <1 || stack.getAmount() > 64 || tag.getKeys().size() > 20) {
+        if (stack.getAmount() < 1 || stack.getAmount() > 64 || tag.getKeys().size() > 20) {
             return true;
         }
         int tagL = tag.toString().length();
@@ -323,22 +313,22 @@ public class ItemChecker {
     private boolean fixEgg(NbtCompound tag) {
         NbtCompound enttag = tag.getCompound("EntityTag");
         int size = enttag.getKeys().size();
-        if (size >= 2 ) {
+        if (size >= 2) {
             Object id = enttag.getObject("id");
             Object color = enttag.getObject("Color");
             enttag.getKeys().clear();
-            if (id != null && id instanceof String) {
+            if (id instanceof String) {
                 enttag.put("id", (String) id);
             }
-            if (color != null && color instanceof Byte) {
+            if (color instanceof Byte) {
                 enttag.put("Color", (byte) color);
             }
             tag.put("EntityTag", enttag);
-            return color==null ? true : size >= 3;
+            return color == null || size >= 3;
         }
         return false;
     }
-    
+
     private void clearData(ItemStack stack) {
         NbtCompound tag = (NbtCompound) MiniNbtFactory.fromItemTag(stack);
         if (tag == null) return;

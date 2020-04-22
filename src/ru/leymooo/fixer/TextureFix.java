@@ -1,9 +1,5 @@
 package ru.leymooo.fixer;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-
 import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
@@ -16,15 +12,17 @@ import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerPickupItemEvent;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+
 @SuppressWarnings("deprecation")
 public class TextureFix implements Listener {
 
-    private HashMap<Material,Integer> limit = new HashMap<Material, Integer>();
-    private HashSet<Material> ignore = new HashSet<Material>();
-    private Main plugin;
+    private final HashMap<Material, Integer> limit = new HashMap<>();
+    private final HashSet<Material> ignore = new HashSet<>();
 
     public TextureFix(String version, Main main) {
-        this.plugin = main;
         //Вроде все предменты что имеют SubId
         //Material, MaxSubId
         limit.put(Material.STONE, 6);
@@ -41,7 +39,6 @@ public class TextureFix implements Listener {
         limit.put(Material.RED_ROSE, 8);
         limit.put(Material.DOUBLE_STEP, 7);
         limit.put(Material.STEP, 7);
-        limit.put(Material.STAINED_GLASS, 15);
         limit.put(Material.MONSTER_EGGS, 5);
         limit.put(Material.SMOOTH_BRICK, 3);
         limit.put(Material.WOOD_DOUBLE_STEP, 5);
@@ -100,7 +97,7 @@ public class TextureFix implements Listener {
         ignore.addAll(Arrays.asList(Material.CHAINMAIL_BOOTS, Material.CHAINMAIL_CHESTPLATE, Material.CHAINMAIL_HELMET, Material.CHAINMAIL_LEGGINGS));
     }
 
-    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = false)
+    @EventHandler(priority = EventPriority.LOWEST)
     public void onHold(PlayerItemHeldEvent e) {
         ItemStack it = e.getPlayer().getInventory().getItem(e.getNewSlot());
         if (isInvalide(it)) {
@@ -110,7 +107,7 @@ public class TextureFix implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = false)
+    @EventHandler(priority = EventPriority.LOWEST)
     public void onInteract(PlayerInteractEvent e) {
         ItemStack it = e.getItem();
         if (isInvalide(it)) {
@@ -120,17 +117,17 @@ public class TextureFix implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = false)
+    @EventHandler(priority = EventPriority.LOWEST)
     public void onClick(InventoryClickEvent e) {
         ItemStack it = e.getCurrentItem();
         if (e.getWhoClicked().getType() == EntityType.PLAYER && isInvalide(it)) {
             e.setCancelled(true);
             e.getWhoClicked().getInventory().remove(it);
-            ((Player)e.getWhoClicked()).updateInventory();
+            ((Player) e.getWhoClicked()).updateInventory();
         }
     }
 
-    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = false)
+    @EventHandler(priority = EventPriority.LOWEST)
     public void onPickup(PlayerPickupItemEvent e) { //Deprecated
         ItemStack it = e.getItem().getItemStack();
         if (isInvalide(it)) {
@@ -140,7 +137,7 @@ public class TextureFix implements Listener {
     }
 
     private boolean isInvalide(ItemStack it) {
-        if (it != null && it.getType()!=Material.AIR && it.getDurability() != 0) {
+        if (it != null && it.getType() != Material.AIR && it.getDurability() != 0) {
             if (limit.containsKey(it.getType())) {
                 return (it.getDurability() < 0 || (it.getDurability() > limit.get(it.getType())));
             }
