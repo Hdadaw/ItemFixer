@@ -2,27 +2,25 @@ package ru.leymooo.fixer;
 
 import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
-import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.ItemSpawnEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
-import org.bukkit.event.player.PlayerPickupItemEvent;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.EnumMap;
+import java.util.EnumSet;
 
-@SuppressWarnings("deprecation")
 public class TextureFix implements Listener {
 
-    private final HashMap<Material, Integer> limit = new HashMap<>();
-    private final HashSet<Material> ignore = new HashSet<>();
+    private final EnumMap<Material, Integer> limit = new EnumMap<>(Material.class);
+    private final EnumSet<Material> ignore = EnumSet.noneOf(Material.class);
 
-    public TextureFix(String version, Main main) {
+    public TextureFix(String version) {
         //Вроде все предменты что имеют SubId
         //Material, MaxSubId
         limit.put(Material.STONE, 6);
@@ -100,7 +98,7 @@ public class TextureFix implements Listener {
     @EventHandler(priority = EventPriority.LOWEST)
     public void onHold(PlayerItemHeldEvent e) {
         ItemStack it = e.getPlayer().getInventory().getItem(e.getNewSlot());
-        if (isInvalide(it)) {
+        if (isInvalidTexture(it)) {
             e.setCancelled(true);
             e.getPlayer().getInventory().remove(it);
         }
@@ -108,32 +106,29 @@ public class TextureFix implements Listener {
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onInteract(PlayerInteractEvent e) {
-        ItemStack it = e.getItem();
-        if (isInvalide(it)) {
+        if (isInvalidTexture(e.getItem())) {
             e.setCancelled(true);
-            e.getPlayer().getInventory().remove(it);
+            e.getPlayer().getInventory().remove(e.getItem());
         }
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onClick(InventoryClickEvent e) {
-        ItemStack it = e.getCurrentItem();
-        if (e.getWhoClicked().getType() == EntityType.PLAYER && isInvalide(it)) {
+        ItemStack item = e.getCurrentItem();
+        if (e.getWhoClicked().getType() == EntityType.PLAYER && isInvalidTexture(item)) {
             e.setCancelled(true);
-            e.getWhoClicked().getInventory().remove(it);
+            e.getWhoClicked().getInventory().remove(item);
         }
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
-    public void onPickup(PlayerPickupItemEvent e) { //Deprecated
-        ItemStack it = e.getItem().getItemStack();
-        if (isInvalide(it)) {
+    public void onItemSpawn(ItemSpawnEvent e) {
+        if (isInvalidTexture(e.getEntity().getItemStack())) {
             e.setCancelled(true);
-            e.getItem().remove();
         }
     }
 
-    private boolean isInvalide(ItemStack it) {
+    public boolean isInvalidTexture(ItemStack it) {
         if (it != null && it.getType() != Material.AIR && it.getDurability() != 0) {
             if (limit.containsKey(it.getType())) {
                 return (it.getDurability() < 0 || (it.getDurability() > limit.get(it.getType())));
