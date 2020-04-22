@@ -26,7 +26,6 @@ public class Main extends JavaPlugin {
     private ItemChecker checker;
     private ProtocolManager manager;
     public String version;
-    private final PluginUpdater updater = new PluginUpdater(this, "Dimatert9", "ItemFixer");
 
     @Override
     public void onEnable() {
@@ -41,7 +40,6 @@ public class Main extends JavaPlugin {
         manager.addPacketListener(new NBTListener(this, version));
         pmanager.registerEvents(new NBTBukkitListener(this), this);
         pmanager.registerEvents(new TextureFix(version, this), this);
-        if (getConfig().getBoolean("check-update")) checkUpdate();
         Bukkit.getConsoleSender().sendMessage("§b[ItemFixer] §aenabled");
     }
 
@@ -103,19 +101,5 @@ public class Main extends JavaPlugin {
             }
         }
         return false;
-    }
-    private void checkUpdate() {
-        new Thread(()-> {
-            try {
-                UpdaterResult result = updater.checkUpdates();
-                if (result.hasUpdates()) {
-                    Bukkit.getConsoleSender().sendMessage("§b[ItemFixer] §cНовое обновление найдено! | The new version found!");
-                } else {
-                    Bukkit.getConsoleSender().sendMessage("§b[ItemFixer] §aОбновлений не найдено. | No updates found.");
-                }
-            } catch (UpdaterException e) {
-                e.print();
-            }
-        }).start();
     }
 }
