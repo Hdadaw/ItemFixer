@@ -259,7 +259,7 @@ public class ItemChecker {
 
     public boolean isHackedItem(ItemStack stack, Player p) {
         if (stack == null || stack.getType() == Material.AIR) return false;
-        if (this.world.contains(p.getWorld().getName().toLowerCase()) || plugin.isMagicItem(stack)) return false;
+        if (this.world.contains(p.getWorld().getName().toLowerCase())) return false;
         this.checkShulkerBox(stack, p);
         if (this.checkNbt(stack, p)) {
             checkEnchants(stack, p);

@@ -13,26 +13,16 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
 
-import com.gmail.filoghost.chestcommands.internal.MenuInventoryHolder;
-
 public class NBTBukkitListener implements Listener {
     
     private final Main plugin;
-    private Boolean cc;
-    
+
     public NBTBukkitListener(Main Main) {
         this.plugin = Main;
-        try {
-            Class.forName("com.gmail.filoghost.chestcommands.internal.MenuInventoryHolder");
-            cc = true;
-        } catch (ClassNotFoundException e) {
-            cc = false;
-        }
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onInvClick(InventoryClickEvent event) {
-        if (cc && event.getInventory().getHolder() instanceof MenuInventoryHolder) return;
         if (event.getWhoClicked().getType() != EntityType.PLAYER) return;
         final Player p = (Player) event.getWhoClicked();
         if (event.getCurrentItem() == null) return;
