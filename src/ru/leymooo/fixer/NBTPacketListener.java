@@ -18,6 +18,7 @@ import java.util.concurrent.TimeUnit;
 
 public class NBTPacketListener extends PacketAdapter {
 
+    private static final Object OBJECT = new Object();
     public static Cache<Player, Object> cancel;
     private final Main plugin;
 
@@ -50,14 +51,14 @@ public class NBTPacketListener extends PacketAdapter {
     private void proccessSetCreativeSlot(PacketEvent event, Player p) {
         ItemStack stack = event.getPacket().getItemModifier().readSafely(0);
         if (plugin.checkItem(stack, p)) {
-            cancel.put(p, new Object());
+            cancel.put(p, OBJECT);
         }
     }
 
     private void proccessCustomPayload(PacketEvent event, Player p) {
         String channel = event.getPacket().getStrings().readSafely(0);
         if (("MC|BEdit".equals(channel) || "MC|BSign".equals(channel))) {
-            cancel.put(p, new Object());
+            cancel.put(p, OBJECT);
         } else if ("REGISTER".equals(channel)) {
             checkRegisterChannel(event, p);
         }
