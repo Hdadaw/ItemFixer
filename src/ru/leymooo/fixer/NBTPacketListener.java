@@ -13,7 +13,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import ru.leymooo.fixer.utils.PlayerUtils;
 
 import java.util.concurrent.TimeUnit;
 
@@ -35,7 +34,7 @@ public class NBTPacketListener extends PacketAdapter {
     @Override
     public void onPacketReceiving(PacketEvent event) {
         if (event.isCancelled()) return;
-        Player p = PlayerUtils.getPlayerFromEvent(event);
+        Player p = event.getPlayer();
         if (p == null) return;
         if (this.needCancel(p)) {
             event.setCancelled(true);

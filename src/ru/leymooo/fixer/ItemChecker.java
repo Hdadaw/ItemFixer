@@ -2,6 +2,7 @@ package ru.leymooo.fixer;
 
 import com.comphenix.protocol.wrappers.nbt.NbtBase;
 import com.comphenix.protocol.wrappers.nbt.NbtCompound;
+import com.comphenix.protocol.wrappers.nbt.NbtFactory;
 import com.comphenix.protocol.wrappers.nbt.NbtList;
 import org.apache.commons.codec.binary.Base64;
 import org.bukkit.Color;
@@ -14,7 +15,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.*;
 import org.bukkit.potion.PotionEffect;
-import ru.leymooo.fixer.utils.MiniNbtFactory;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -131,7 +131,7 @@ public class ItemChecker {
         try {
             if (p.hasPermission("itemfixer.bypass.nbt")) return false;
             Material mat = stack.getType();
-            NbtCompound tag = (NbtCompound) MiniNbtFactory.fromItemTag(stack);
+            NbtCompound tag = (NbtCompound) NbtFactory.fromItemTag(stack);
             if (tag == null) return false;
             if (this.isCrashItem(stack, tag, mat)) {
                 tag.getKeys().clear();
@@ -330,7 +330,7 @@ public class ItemChecker {
     }
 
     private void clearData(ItemStack stack) {
-        NbtCompound tag = (NbtCompound) MiniNbtFactory.fromItemTag(stack);
+        NbtCompound tag = (NbtCompound) NbtFactory.fromItemTag(stack);
         if (tag == null) return;
         tag.getKeys().clear();
     }
