@@ -4,6 +4,7 @@ import com.comphenix.protocol.wrappers.nbt.NbtBase;
 import com.comphenix.protocol.wrappers.nbt.NbtCompound;
 import com.comphenix.protocol.wrappers.nbt.NbtFactory;
 import com.comphenix.protocol.wrappers.nbt.NbtList;
+import com.google.gson.Gson;
 import org.apache.commons.codec.binary.Base64;
 import org.bukkit.Color;
 import org.bukkit.FireworkEffect;
@@ -23,23 +24,21 @@ public class ItemChecker {
 
     private final Boolean removeInvalidEnch;
     private final Boolean checkench;
-    private final HashSet<String> nbt = new HashSet<>();
-    private final HashSet<String> world = new HashSet<>();
-    private final HashSet<Material> tiles = new HashSet<>();
-    private final HashSet<String> ignoreNbt = new HashSet<>();
+    private final HashSet<String> nbt;
+    private final HashSet<String> world;
+    private final EnumSet<Material> tiles;
+    private final HashSet<String> ignoreNbt;
     private final Main plugin;
 
     public ItemChecker(Main main) {
         this.plugin = main;
-        ignoreNbt.addAll(plugin.getConfig().getStringList("ignored-tags"));
-        nbt.addAll(Arrays.asList("ActiveEffects", "Command", "CustomName", "AttributeModifiers", "Unbreakable"));
+        ignoreNbt = new HashSet<>(plugin.getConfig().getStringList("ignored-tags"));
+        nbt = new HashSet<>(Arrays.asList("ActiveEffects", "Command", "CustomName", "AttributeModifiers", "Unbreakable"));
         nbt.removeAll(ignoreNbt);
-        tiles.addAll(Arrays.asList(
+        tiles = EnumSet.copyOf(Arrays.asList(
                 Material.FURNACE, Material.CHEST, Material.TRAPPED_CHEST, Material.DROPPER, Material.DISPENSER, Material.COMMAND_MINECART, Material.HOPPER_MINECART,
                 Material.HOPPER, Material.BREWING_STAND_ITEM, Material.BEACON, Material.SIGN, Material.MOB_SPAWNER, Material.NOTE_BLOCK, Material.COMMAND, Material.JUKEBOX));
-        for (String w : plugin.getConfig().getStringList("ignore-worlds")) {
-            world.add(w.toLowerCase());
-        }
+        world = new HashSet<>(plugin.getConfig().getStringList("ignore-worlds"));
         checkench = plugin.getConfig().getBoolean("check-enchants");
         removeInvalidEnch = plugin.getConfig().getBoolean("remove-invalid-enchants");
     }

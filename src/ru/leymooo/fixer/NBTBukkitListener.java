@@ -23,27 +23,23 @@ public class NBTBukkitListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onInvClick(InventoryClickEvent event) {
         if (event.getWhoClicked().getType() != EntityType.PLAYER) return;
-        final Player p = (Player) event.getWhoClicked();
         if (event.getCurrentItem() == null) return;
-        if (plugin.checkItem(event.getCurrentItem(), p)) {
+        if (plugin.checkItem(event.getCurrentItem(), (Player) event.getWhoClicked())) {
             event.setCancelled(true);
         }
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onDrop(PlayerDropItemEvent event) {
-        final Player p = event.getPlayer();
         if (event.getItemDrop() == null) return;
-        if (plugin.checkItem(event.getItemDrop().getItemStack(), p)) {
+        if (plugin.checkItem(event.getItemDrop().getItemStack(), event.getPlayer())) {
             event.setCancelled(true);
         }
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onSlotChange(PlayerItemHeldEvent event) {
-        Player p = event.getPlayer();
-        ItemStack stack = p.getInventory().getItem(event.getNewSlot());
-        if (plugin.checkItem(stack, p)) {
+        if (plugin.checkItem(event.getPlayer().getInventory().getItem(event.getNewSlot()), event.getPlayer())) {
             event.setCancelled(true);
         }
     }
