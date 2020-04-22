@@ -1,5 +1,5 @@
 name: ItemFixer
-author: Leymooo
+author: Leymooo, Hdadaw
 main: ru.leymooo.fixer.Main
-version: 3.1
+version: 3.1-Fixed
 depend: [ProtocolLib]
