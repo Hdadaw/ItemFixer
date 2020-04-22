@@ -51,7 +51,6 @@ public class NBTPacketListener extends PacketAdapter {
         ItemStack stack = event.getPacket().getItemModifier().readSafely(0);
         if (plugin.checkItem(stack, p)) {
             cancel.put(p, new Object());
-            p.updateInventory();
         }
     }
 

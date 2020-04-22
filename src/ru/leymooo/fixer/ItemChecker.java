@@ -101,12 +101,11 @@ public class ItemChecker {
         boolean cheat = false;
         if (checkench && !p.hasPermission("itemfixer.bypass.enchant") && stack.hasItemMeta() && stack.getItemMeta().hasEnchants()) {
             final ItemMeta meta = stack.getItemMeta();
-            Map<Enchantment, Integer> enchantments = null;
+            Map<Enchantment, Integer> enchantments;
             try {
                 enchantments = meta.getEnchants();
             } catch (Exception e) {
                 clearData(stack);
-                p.updateInventory();
                 return true;
             }
             for (Map.Entry<Enchantment, Integer> ench : enchantments.entrySet()) {

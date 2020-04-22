@@ -103,7 +103,6 @@ public class TextureFix implements Listener {
         if (isInvalide(it)) {
             e.setCancelled(true);
             e.getPlayer().getInventory().remove(it);
-            e.getPlayer().updateInventory();
         }
     }
 
@@ -113,7 +112,6 @@ public class TextureFix implements Listener {
         if (isInvalide(it)) {
             e.setCancelled(true);
             e.getPlayer().getInventory().remove(it);
-            e.getPlayer().updateInventory();
         }
     }
 
@@ -123,7 +121,6 @@ public class TextureFix implements Listener {
         if (e.getWhoClicked().getType() == EntityType.PLAYER && isInvalide(it)) {
             e.setCancelled(true);
             e.getWhoClicked().getInventory().remove(it);
-            ((Player) e.getWhoClicked()).updateInventory();
         }
     }
 

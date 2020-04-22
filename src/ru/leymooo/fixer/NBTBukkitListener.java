@@ -27,7 +27,6 @@ public class NBTBukkitListener implements Listener {
         if (event.getCurrentItem() == null) return;
         if (plugin.checkItem(event.getCurrentItem(), p)) {
             event.setCancelled(true);
-            p.updateInventory();
         }
     }
 
@@ -37,7 +36,6 @@ public class NBTBukkitListener implements Listener {
         if (event.getItemDrop() == null) return;
         if (plugin.checkItem(event.getItemDrop().getItemStack(), p)) {
             event.setCancelled(true);
-            p.updateInventory();
         }
     }
 
@@ -47,7 +45,6 @@ public class NBTBukkitListener implements Listener {
         ItemStack stack = p.getInventory().getItem(event.getNewSlot());
         if (plugin.checkItem(stack, p)) {
             event.setCancelled(true);
-            p.updateInventory();
         }
     }
 
