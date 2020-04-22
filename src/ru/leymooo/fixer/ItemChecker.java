@@ -5,6 +5,7 @@ import com.comphenix.protocol.wrappers.nbt.NbtCompound;
 import com.comphenix.protocol.wrappers.nbt.NbtFactory;
 import com.comphenix.protocol.wrappers.nbt.NbtList;
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import org.apache.commons.codec.binary.Base64;
 import org.bukkit.Color;
 import org.bukkit.FireworkEffect;
@@ -22,6 +23,7 @@ import java.util.stream.Collectors;
 
 public class ItemChecker {
 
+    private final Gson gson = new Gson();
     private final Boolean removeInvalidEnch;
     private final Boolean checkench;
     private final HashSet<String> nbt;
@@ -45,55 +47,52 @@ public class ItemChecker {
 
     @SuppressWarnings("rawtypes")
     public boolean isCrashSkull(NbtCompound tag) {
-        if (tag.containsKey("SkullOwner")) {
-            NbtCompound skullOwner = tag.getCompound("SkullOwner");
-            if (skullOwner.containsKey("Properties")) {
-                NbtCompound properties = skullOwner.getCompound("Properties");
-                if (properties.containsKey("textures")) {
-                    NbtList<NbtBase> textures = properties.getList("textures");
-                    for (NbtBase texture : textures.asCollection()) {
-                        if (texture instanceof NbtCompound) {
-                            if (((NbtCompound) texture).containsKey("Value")) {
-                                if (((NbtCompound) texture).getString("Value").trim().length() > 0) {
-                                    String decoded = null;
-                                    try {
-                                        decoded = new String(Base64.decodeBase64(((NbtCompound) texture).getString("Value")));
-                                    } catch (Exception e) {
-                                        tag.remove("SkullOwner");
-                                        return true;
-                                    }
-                                    if (decoded == null || decoded.isEmpty()) {
-                                        tag.remove("SkullOwner");
-                                        return true;
-                                    }
-                                    if (decoded.contains("textures") && decoded.contains("SKIN")) {
-                                        if (decoded.contains("url")) {
-                                            String headUrl = null;
-                                            try {
-                                                headUrl = decoded.split("url\":")[1].replace("}", "").replace("\"", "");
-                                            } catch (ArrayIndexOutOfBoundsException e) {
-                                                tag.remove("SkullOwner");
-                                                return true;
-                                            }
-                                            if (headUrl == null || headUrl.isEmpty() || headUrl.trim().length() == 0) {
-                                                tag.remove("SkullOwner");
-                                                return true;
-                                            }
-                                            if (headUrl.startsWith("http://textures.minecraft.net/texture/") || headUrl.startsWith("https://textures.minecraft.net/texture/")) {
-                                                return false;
-                                            }
-                                        }
-                                    }
+        if (!tag.containsKey("SkullOwner")) return false;
+        NbtCompound skullOwner = tag.getCompound("SkullOwner");
+        if (!skullOwner.containsKey("Properties")) return false;
+        NbtCompound properties = skullOwner.getCompound("Properties");
+        if (properties.containsKey("textures")) {
+            NbtList<NbtBase> textures = properties.getList("textures");
+            for (NbtBase texture : textures.asCollection()) {
+                if (texture instanceof NbtCompound) {
+                    if (((NbtCompound) texture).containsKey("Value")) {
+                        if (((NbtCompound) texture).getString("Value").trim().length() > 0) {
+                            String decoded;
+                            try {
+                                decoded = new String(Base64.decodeBase64(((NbtCompound) texture).getString("Value")));
+                            } catch (Exception e) {
+                                tag.remove("SkullOwner");
+                                return true;
+                            }
+                            if (decoded.isEmpty()) {
+                                tag.remove("SkullOwner");
+                                return true;
+                            }
+                            if (decoded.contains("textures")) {
+                                try {
+                                    JsonObject jdecoded = gson.fromJson(decoded, JsonObject.class);
+                                    if (!jdecoded.has("textures")) return false;
+                                    JsonObject jtextures = jdecoded.getAsJsonObject("textures");
+                                    if (!jtextures.has("SKIN")) return true;
+                                    JsonObject jskin = jtextures.getAsJsonObject("SKIN");
+                                    if (!jskin.has("url")) return true;
+                                    String url = jskin.getAsJsonPrimitive("url").getAsString();
+
+                                    if (url.isEmpty() || url.trim().length() == 0) return true;
+                                    if (url.startsWith("http://textures.minecraft.net/texture/") || url.startsWith("https://textures.minecraft.net/texture/"))
+                                        return false;
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                    return true;
                                 }
                             }
                         }
                     }
                 }
-                tag.remove("SkullOwner");
-                return true;
             }
         }
-        return false;
+        tag.remove("SkullOwner");
+        return true;
     }
 
     private boolean checkEnchants(ItemStack stack, Player p) {
@@ -247,7 +246,7 @@ public class ItemChecker {
 
     public boolean isHackedItem(ItemStack stack, Player p) {
         if (stack == null || stack.getType() == Material.AIR) return false;
-        if (this.world.contains(p.getWorld().getName().toLowerCase())) return false;
+        if (this.world.contains(p.getWorld().getName())) return false;
         this.checkShulkerBox(stack, p);
         if (this.checkNbt(stack, p)) {
             checkEnchants(stack, p);
