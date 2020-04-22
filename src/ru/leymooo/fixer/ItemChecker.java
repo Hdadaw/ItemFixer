@@ -4,6 +4,8 @@ import com.comphenix.protocol.wrappers.nbt.NbtBase;
 import com.comphenix.protocol.wrappers.nbt.NbtCompound;
 import com.comphenix.protocol.wrappers.nbt.NbtFactory;
 import com.comphenix.protocol.wrappers.nbt.NbtList;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import org.apache.commons.codec.binary.Base64;
@@ -19,10 +21,12 @@ import org.bukkit.inventory.meta.*;
 import org.bukkit.potion.PotionEffect;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public class ItemChecker {
 
+    private static final Object OBJECT = new Object();
     private final Gson gson = new Gson();
     private final Boolean removeInvalidEnch;
     private final Boolean checkench;
@@ -30,6 +34,7 @@ public class ItemChecker {
     private final HashSet<String> world;
     private final EnumSet<Material> tiles;
     private final HashSet<String> ignoreNbt;
+    private final Cache<Integer, Object> checked;
     private final Main plugin;
 
     public ItemChecker(Main main) {
@@ -43,6 +48,11 @@ public class ItemChecker {
         world = new HashSet<>(plugin.getConfig().getStringList("ignore-worlds"));
         checkench = plugin.getConfig().getBoolean("check-enchants");
         removeInvalidEnch = plugin.getConfig().getBoolean("remove-invalid-enchants");
+        checked = CacheBuilder.newBuilder()
+                .concurrencyLevel(2)
+                .initialCapacity(50)
+                .expireAfterWrite(30, TimeUnit.SECONDS)
+                .build();
     }
 
     @SuppressWarnings("rawtypes")
@@ -247,12 +257,15 @@ public class ItemChecker {
     public boolean isHackedItem(ItemStack stack, Player p) {
         if (stack == null || stack.getType() == Material.AIR) return false;
         if (this.world.contains(p.getWorld().getName())) return false;
+        int stackHash = stack.hashCode();
+        if (this.checked.getIfPresent(stackHash) != null) return false; // если предмет уже проверялся и не читерский
         this.checkShulkerBox(stack, p);
-        if (this.checkNbt(stack, p)) {
-            checkEnchants(stack, p);
+        if (this.checkNbt(stack, p) & checkEnchants(stack, p)) {
             return true;
+        } else {
+            this.checked.put(stackHash, OBJECT);
+            return false;
         }
-        return checkEnchants(stack, p);
     }
 
     private boolean checkBanner(ItemStack stack) {
