@@ -6,18 +6,20 @@ import com.comphenix.protocol.wrappers.nbt.NbtFactory;
 import com.comphenix.protocol.wrappers.nbt.NbtWrapper;
 import org.bukkit.inventory.ItemStack;
 
-import java.lang.reflect.InvocationTargetException;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 
 public class MiniNbtFactory {
 
-    private static Method m;
+    private static MethodHandle m;
 
     static {
         try {
-            m = NbtFactory.class.getDeclaredMethod("getStackModifier", ItemStack.class);
+            Method m = NbtFactory.class.getDeclaredMethod("getStackModifier", ItemStack.class);
             m.setAccessible(true);
-        } catch (NoSuchMethodException | SecurityException e) {
+            MiniNbtFactory.m = MethodHandles.lookup().unreflect(m);
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -26,9 +28,8 @@ public class MiniNbtFactory {
     public static NbtWrapper<?> fromItemTag(ItemStack stack) {
         StructureModifier<NbtBase<?>> modifier = null;
         try {
-            modifier = (StructureModifier<NbtBase<?>>) m.invoke(null, stack);
-        } catch (IllegalAccessException | IllegalArgumentException
-                | InvocationTargetException e) {
+            modifier = (StructureModifier<NbtBase<?>>) m.invoke(stack);
+        } catch (Throwable e) {
             e.printStackTrace();
         }
         NbtBase<?> result = modifier.read(0);
