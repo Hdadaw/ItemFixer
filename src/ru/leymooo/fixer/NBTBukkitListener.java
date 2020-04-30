@@ -1,5 +1,7 @@
 package ru.leymooo.fixer;
 
+import com.comphenix.protocol.wrappers.nbt.NbtWrapper;
+import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -7,7 +9,9 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.*;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import ru.leymooo.fixer.utils.MiniNbtFactory;
 
 public class NBTBukkitListener implements Listener {
 
@@ -61,12 +65,41 @@ public class NBTBukkitListener implements Listener {
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         for (ItemStack stack : event.getPlayer().getInventory().getContents()) {
-            plugin.checkItem(stack, event.getPlayer());
+            if (plugin.checkItem(stack, event.getPlayer())) {
+                event.getPlayer().getInventory().remove(stack);
+            }
         }
+
+        cleanupOverflowInventory(event.getPlayer().getInventory());
+        cleanupOverflowInventory(event.getPlayer().getEnderChest());
     }
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         NBTPacketListener.cancel.invalidate(event.getPlayer());
+    }
+
+    private static void cleanupOverflowInventory(Inventory inventory) {
+        int packetSize = 0;
+        for (ItemStack stack : inventory.getContents()) {
+            if (stack == null || stack.getType() == Material.AIR) continue;
+
+            if (isOverflowPacketSize(packetSize)) {
+                inventory.remove(stack);
+                continue;
+            }
+
+            NbtWrapper<?> tag = MiniNbtFactory.fromItemTag(stack);
+            if (tag == null) continue;
+            packetSize += tag.toString().length();
+
+            if (isOverflowPacketSize(packetSize)) {
+                inventory.remove(stack);
+            }
+        }
+    }
+
+    private static boolean isOverflowPacketSize(int size) {
+        return size > 2097152;
     }
 }

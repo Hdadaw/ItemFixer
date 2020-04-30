@@ -301,7 +301,7 @@ public class ItemChecker {
             return true;
         }
         if (isShulkerBox(stack, stack)) return false;
-        return mat == Material.WRITTEN_BOOK ? (tagL >= 22000) : (tagL >= 13000);
+        return mat == Material.WRITTEN_BOOK ? (tagL >= 16000) : (tagL >= 13000);
     }
 
     private boolean fixEgg(NbtCompound tag) {
