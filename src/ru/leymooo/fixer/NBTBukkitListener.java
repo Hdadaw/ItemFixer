@@ -6,10 +6,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.player.PlayerDropItemEvent;
-import org.bukkit.event.player.PlayerItemHeldEvent;
-import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.*;
 import org.bukkit.inventory.ItemStack;
 
 public class NBTBukkitListener implements Listener {
@@ -33,6 +30,23 @@ public class NBTBukkitListener implements Listener {
     public void onDrop(PlayerDropItemEvent event) {
         if (event.getItemDrop() == null) return;
         if (plugin.checkItem(event.getItemDrop().getItemStack(), event.getPlayer())) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onPickup(PlayerPickupItemEvent event) {
+        if (event.getItem() == null) return;
+        if (plugin.checkItem(event.getItem().getItemStack(), event.getPlayer())) {
+            event.setCancelled(true);
+            event.getItem().remove();
+        }
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onInteract(PlayerInteractEvent event) {
+        if (event.getItem() == null) return;
+        if (plugin.checkItem(event.getItem(), event.getPlayer())) {
             event.setCancelled(true);
         }
     }

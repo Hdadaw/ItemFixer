@@ -3,8 +3,6 @@ package ru.leymooo.fixer;
 import com.comphenix.protocol.wrappers.nbt.NbtBase;
 import com.comphenix.protocol.wrappers.nbt.NbtCompound;
 import com.comphenix.protocol.wrappers.nbt.NbtList;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import org.apache.commons.codec.binary.Base64;
@@ -21,12 +19,10 @@ import org.bukkit.potion.PotionEffect;
 import ru.leymooo.fixer.utils.MiniNbtFactory;
 
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public class ItemChecker {
 
-    private static final Object OBJECT = new Object();
     private final Gson gson = new Gson();
     private final Boolean removeInvalidEnch;
     private final Boolean checkench;
@@ -34,7 +30,6 @@ public class ItemChecker {
     private final HashSet<String> world;
     private final EnumSet<Material> tiles;
     private final HashSet<String> ignoreNbt;
-    private final Cache<Integer, Object> checked;
     private final Main plugin;
 
     public ItemChecker(Main main) {
@@ -48,11 +43,6 @@ public class ItemChecker {
         world = new HashSet<>(plugin.getConfig().getStringList("ignore-worlds"));
         checkench = plugin.getConfig().getBoolean("check-enchants");
         removeInvalidEnch = plugin.getConfig().getBoolean("remove-invalid-enchants");
-        checked = CacheBuilder.newBuilder()
-                .concurrencyLevel(2)
-                .initialCapacity(50)
-                .expireAfterWrite(30, TimeUnit.SECONDS)
-                .build();
     }
 
     @SuppressWarnings("rawtypes")
@@ -83,9 +73,9 @@ public class ItemChecker {
                                     JsonObject jdecoded = gson.fromJson(decoded, JsonObject.class);
                                     if (!jdecoded.has("textures")) return false;
                                     JsonObject jtextures = jdecoded.getAsJsonObject("textures");
-                                    if (!jtextures.has("SKIN")) return true;
+                                    if (!jtextures.has("SKIN")) return false;
                                     JsonObject jskin = jtextures.getAsJsonObject("SKIN");
-                                    if (!jskin.has("url")) return true;
+                                    if (!jskin.has("url")) return false;
                                     String url = jskin.getAsJsonPrimitive("url").getAsString();
 
                                     if (url.isEmpty() || url.trim().length() == 0) return true;
@@ -172,8 +162,8 @@ public class ItemChecker {
                 cheat = true;
             } else if (mat == Material.BANNER && checkBanner(stack)) {
                 cheat = true;
-            } else if (isPotion(stack) && !ignoreNbt.contains("CustomPotionEffects") && tag.containsKey("CustomPotionEffects")
-                    && (checkPotion(stack, p) || checkCustomColor(tag.getCompound("CustomPotionEffects")))) {
+            } else if (isPotion(stack) && (!ignoreNbt.contains("CustomPotionEffects") && tag.containsKey("CustomPotionEffects")
+                    && (checkPotion(stack, p) || checkCustomColor(tag.getCompound("CustomPotionEffects"))))) {
                 cheat = true;
             }
         } catch (Exception ignored) {
@@ -186,18 +176,20 @@ public class ItemChecker {
         return (m == Material.BANNER || (!plugin.isVersion1_8() && (m == Material.SHIELD)));
     }
 
-    private void checkShulkerBox(ItemStack stack, Player p) {
-        if (!isShulkerBox(stack, stack)) return;
+    private boolean checkShulkerBox(ItemStack stack, Player p) {
+        if (!isShulkerBox(stack, stack)) return false;
         BlockStateMeta meta = (BlockStateMeta) stack.getItemMeta();
         ShulkerBox box = (ShulkerBox) meta.getBlockState();
         for (ItemStack is : box.getInventory().getContents()) {
+            if (is == null) continue;
             if (isShulkerBox(is, stack) || isHackedItem(is, p)) {
                 box.getInventory().clear();
                 meta.setBlockState(box);
                 stack.setItemMeta(meta);
-                return;
+                return true;
             }
         }
+        return false;
     }
 
     private boolean isPotion(ItemStack stack) {
@@ -257,15 +249,7 @@ public class ItemChecker {
     public boolean isHackedItem(ItemStack stack, Player p) {
         if (stack == null || stack.getType() == Material.AIR) return false;
         if (this.world.contains(p.getWorld().getName())) return false;
-        int stackHash = stack.hashCode();
-        if (this.checked.getIfPresent(stackHash) != null) return false; // если предмет уже проверялся и не читерский
-        this.checkShulkerBox(stack, p);
-        if (this.checkNbt(stack, p) & checkEnchants(stack, p)) {
-            return true;
-        } else {
-            this.checked.put(stackHash, OBJECT);
-            return false;
-        }
+        return checkShulkerBox(stack, p) || (this.checkNbt(stack, p) | checkEnchants(stack, p));
     }
 
     private boolean checkBanner(ItemStack stack) {
