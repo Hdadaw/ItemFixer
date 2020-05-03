@@ -5,6 +5,7 @@ import com.comphenix.protocol.events.ListenerPriority;
 import com.comphenix.protocol.events.PacketAdapter;
 import com.comphenix.protocol.events.PacketContainer;
 import com.comphenix.protocol.events.PacketEvent;
+import com.comphenix.protocol.injector.server.TemporaryPlayer;
 import com.google.common.base.Charsets;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -36,12 +37,12 @@ public class NBTPacketListener extends PacketAdapter {
     public void onPacketReceiving(PacketEvent event) {
         if (event.isCancelled()) return;
         Player p = event.getPlayer();
-        if (p == null) return;
+        if (p == null || p instanceof TemporaryPlayer) return;
         if (this.needCancel(p)) {
             event.setCancelled(true);
             return;
         }
-        if (event.getPacketType() == PacketType.Play.Client.SET_CREATIVE_SLOT && p.getGameMode() == GameMode.CREATIVE) {
+        if (event.getPacketType() == PacketType.Play.Client.SET_CREATIVE_SLOT && p.getGameMode() == GameMode.CREATIVE && !p.hasPermission("itemfixer.bypass.packet")) {
             this.proccessSetCreativeSlot(event, p);
         } else if (event.getPacketType() == PacketType.Play.Client.CUSTOM_PAYLOAD && plugin.isVersion1_8() && !p.hasPermission("itemfixer.bypass.packet")) {
             this.proccessCustomPayload(event, p);
@@ -50,7 +51,8 @@ public class NBTPacketListener extends PacketAdapter {
 
     private void proccessSetCreativeSlot(PacketEvent event, Player p) {
         ItemStack stack = event.getPacket().getItemModifier().readSafely(0);
-        if (plugin.checkItem(stack, p)) {
+        if (plugin.isHackItem(stack, p)) {
+            event.setCancelled(true);
             cancel.put(p, OBJECT);
         }
     }

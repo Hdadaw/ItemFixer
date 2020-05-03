@@ -4,6 +4,7 @@ import com.comphenix.protocol.ProtocolLibrary;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -38,10 +39,17 @@ public class Main extends JavaPlugin {
         checker = null;
     }
 
-    public boolean checkItem(ItemStack stack, Player p) {
-        return checker.isHackedItem(stack, p);
+    public boolean isHackItem(ItemStack stack, Player p) {
+        if (hasFullBypass(p)) return false;
+        return checker.isHacked(checker.checkItem(stack, p));
     }
 
+    public void checkInventory(Inventory inventory, Player p) {
+        if (hasFullBypass(p)) return;
+        checker.checkInventory(inventory, p);
+    }
+
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     private void checkNewConfig() {
         if (!getConfig().isSet("ignored-tags")) {
             File config = new File(getDataFolder(), "config.yml");
@@ -57,5 +65,9 @@ public class Main extends JavaPlugin {
 
     public boolean isVersion1_8() {
         return version1_8;
+    }
+
+    public boolean hasFullBypass(Player p) {
+        return p.hasPermission("itemfixer.bypass.any");
     }
 }

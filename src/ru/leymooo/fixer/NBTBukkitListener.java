@@ -1,17 +1,18 @@
 package ru.leymooo.fixer;
 
-import com.comphenix.protocol.wrappers.nbt.NbtWrapper;
-import org.bukkit.Material;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.block.BlockState;
+import org.bukkit.block.Container;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.player.*;
-import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import ru.leymooo.fixer.utils.MiniNbtFactory;
 
 public class NBTBukkitListener implements Listener {
 
@@ -25,23 +26,27 @@ public class NBTBukkitListener implements Listener {
     public void onInvClick(InventoryClickEvent event) {
         if (event.getWhoClicked().getType() != EntityType.PLAYER) return;
         if (event.getCurrentItem() == null) return;
-        if (plugin.checkItem(event.getCurrentItem(), (Player) event.getWhoClicked())) {
+        if (plugin.isHackItem(event.getCurrentItem(), (Player) event.getWhoClicked())) {
             event.setCancelled(true);
+            event.setCurrentItem(null);
+        }
+        if (plugin.isHackItem(event.getCursor(), (Player) event.getWhoClicked())) {
+            event.setCancelled(true);
+            event.getView().setCursor(null);
         }
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onDrop(PlayerDropItemEvent event) {
-        if (event.getItemDrop() == null) return;
-        if (plugin.checkItem(event.getItemDrop().getItemStack(), event.getPlayer())) {
+        if (plugin.isHackItem(event.getItemDrop().getItemStack(), event.getPlayer())) {
             event.setCancelled(true);
+            event.getPlayer().getInventory().remove(event.getItemDrop().getItemStack());
         }
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onPickup(PlayerPickupItemEvent event) {
-        if (event.getItem() == null) return;
-        if (plugin.checkItem(event.getItem().getItemStack(), event.getPlayer())) {
+        if (plugin.isHackItem(event.getItem().getItemStack(), event.getPlayer())) {
             event.setCancelled(true);
             event.getItem().remove();
         }
@@ -50,56 +55,47 @@ public class NBTBukkitListener implements Listener {
     @EventHandler(priority = EventPriority.LOWEST)
     public void onInteract(PlayerInteractEvent event) {
         if (event.getItem() == null) return;
-        if (plugin.checkItem(event.getItem(), event.getPlayer())) {
+        if (plugin.isHackItem(event.getItem(), event.getPlayer())) {
             event.setCancelled(true);
+            event.getPlayer().getInventory().remove(event.getItem());
         }
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onSlotChange(PlayerItemHeldEvent event) {
-        if (plugin.checkItem(event.getPlayer().getInventory().getItem(event.getNewSlot()), event.getPlayer())) {
+        ItemStack item = event.getPlayer().getInventory().getItem(event.getNewSlot());
+        if (plugin.isHackItem(item, event.getPlayer())) {
             event.setCancelled(true);
+            event.getPlayer().getInventory().remove(item);
         }
     }
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
-        for (ItemStack stack : event.getPlayer().getInventory().getContents()) {
-            if (plugin.checkItem(stack, event.getPlayer())) {
-                event.getPlayer().getInventory().remove(stack);
-            }
-        }
+        if (plugin.hasFullBypass(event.getPlayer())) return;
 
-        cleanupOverflowInventory(event.getPlayer().getInventory());
-        cleanupOverflowInventory(event.getPlayer().getEnderChest());
+        // сразу инвентарь почему-то не изменяется
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            plugin.checkInventory(event.getPlayer().getInventory(), event.getPlayer());
+            plugin.checkInventory(event.getPlayer().getEnderChest(), event.getPlayer());
+        }, 1);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onInventoryOpen(InventoryOpenEvent event) {
+        if (plugin.hasFullBypass((Player) event.getPlayer())) return;
+
+        Location location = event.getInventory().getLocation();
+        if (location == null) return;
+
+        BlockState blockState = location.getBlock().getState();
+        if (blockState instanceof Container) {
+            plugin.checkInventory(((Container) blockState).getInventory(), (Player) event.getPlayer());
+        }
     }
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         NBTPacketListener.cancel.invalidate(event.getPlayer());
-    }
-
-    private static void cleanupOverflowInventory(Inventory inventory) {
-        int packetSize = 0;
-        for (ItemStack stack : inventory.getContents()) {
-            if (stack == null || stack.getType() == Material.AIR) continue;
-
-            if (isOverflowPacketSize(packetSize)) {
-                inventory.remove(stack);
-                continue;
-            }
-
-            NbtWrapper<?> tag = MiniNbtFactory.fromItemTag(stack);
-            if (tag == null) continue;
-            packetSize += tag.toString().length();
-
-            if (isOverflowPacketSize(packetSize)) {
-                inventory.remove(stack);
-            }
-        }
-    }
-
-    private static boolean isOverflowPacketSize(int size) {
-        return size > 2097152;
     }
 }
