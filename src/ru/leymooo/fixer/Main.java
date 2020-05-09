@@ -45,7 +45,6 @@ public class Main extends JavaPlugin {
     }
 
     public void checkInventory(Inventory inventory, Player p) {
-        if (hasFullBypass(p)) return;
         checker.checkInventory(inventory, p);
     }
 

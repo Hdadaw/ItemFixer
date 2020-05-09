@@ -30,6 +30,7 @@ import java.util.stream.Collectors;
 
 public class ItemChecker {
 
+    private final static int PACKET_MAX_NBT_LENGTH = 2_097_152 - 50_000;
     private final static int INV_MAX_NBT_LENGTH = 100_000;
     private final static int ITEM_MAX_NBT_LENGTH = 50_000;
     private final Gson gson = new Gson();
@@ -58,7 +59,10 @@ public class ItemChecker {
     @SuppressWarnings("rawtypes")
     public boolean isCrashSkull(NbtCompound tag) {
         if (!tag.containsKey("SkullOwner")) return false;
-        NbtCompound skullOwner = tag.getCompound("SkullOwner");
+        // некоторые головы могу содержать здесь String
+        NbtBase<?> skullOwnerValue = tag.getValue("SkullOwner");
+        if (!(skullOwnerValue instanceof NbtCompound)) return !(skullOwnerValue.getValue() instanceof String);
+        NbtCompound skullOwner = ((NbtCompound) skullOwnerValue);
         if (!skullOwner.containsKey("Properties")) return false;
         NbtCompound properties = skullOwner.getCompound("Properties");
         if (!properties.containsKey("textures")) return true;
@@ -66,25 +70,21 @@ public class ItemChecker {
         for (NbtBase texture : textures.asCollection()) {
             if (!(texture instanceof NbtCompound)) continue;
             if (!((NbtCompound) texture).containsKey("Value")) continue;
-            if (((NbtCompound) texture).getString("Value").trim().length() > 0) {
-                String decoded = new String(Base64.decodeBase64(((NbtCompound) texture).getString("Value")));
-                if (decoded.isEmpty()) return true;
-                if (decoded.contains("textures")) {
-                    JsonObject jdecoded = gson.fromJson(decoded, JsonObject.class);
-                    if (!jdecoded.has("textures")) return false;
-                    JsonObject jtextures = jdecoded.getAsJsonObject("textures");
-                    if (!jtextures.has("SKIN")) return false;
-                    JsonObject jskin = jtextures.getAsJsonObject("SKIN");
-                    if (!jskin.has("url")) return false;
-                    String url = jskin.getAsJsonPrimitive("url").getAsString();
+            String value = ((NbtCompound) texture).getString("Value");
+            if (value.trim().length() <= 0) return false;
+            String decoded = new String(Base64.decodeBase64(value));
+            if (decoded.isEmpty()) return true;
+            JsonObject jdecoded = gson.fromJson(decoded, JsonObject.class);
+            if (!jdecoded.has("textures")) return false;
+            JsonObject jtextures = jdecoded.getAsJsonObject("textures");
+            if (!jtextures.has("SKIN")) return false;
+            JsonObject jskin = jtextures.getAsJsonObject("SKIN");
+            if (!jskin.has("url")) return false;
+            String url = jskin.getAsJsonPrimitive("url").getAsString();
 
-                    if (url.isEmpty() || url.trim().length() == 0) return true;
-                    if (url.startsWith("http://textures.minecraft.net/texture/") || url.startsWith("https://textures.minecraft.net/texture/")) {
-                        return false;
-                    }
-                }
+            if (!url.isEmpty() && (url.startsWith("http://textures.minecraft.net/texture/") || url.startsWith("https://textures.minecraft.net/texture/"))) {
+                return false;
             }
-
         }
         return true;
     }
@@ -146,6 +146,7 @@ public class ItemChecker {
     }
 
     private boolean checkShulkerBox(ItemStack stack, Player p) {
+        if (p.hasPermission("itemfixer.bypass.shulker")) return false;
         if (!isShulkerBox(stack)) return false;
         for (ItemStack is : ((ShulkerBox) ((BlockStateMeta) stack.getItemMeta()).getBlockState()).getInventory().getContents()) {
             if (is == null) continue;
@@ -157,11 +158,8 @@ public class ItemChecker {
     }
 
     private boolean isPotion(ItemStack stack) {
-        try {
-            return stack.hasItemMeta() && stack.getItemMeta() instanceof PotionMeta;
-        } catch (IllegalArgumentException e) {
-            return false;
-        }
+        Material type = stack.getType();
+        return type == Material.POTION || type == Material.SPLASH_POTION || type == Material.LINGERING_POTION || type == Material.TIPPED_ARROW;
     }
 
     @SuppressWarnings("ResultOfMethodCallIgnored")
@@ -193,7 +191,6 @@ public class ItemChecker {
     private boolean isShulkerBox(ItemStack stack) {
         if (stack == null || stack.getType() == Material.AIR) return false;
         if (plugin.isVersion1_8()) return false;
-        if (!stack.hasItemMeta()) return false;
 
         if (stack.getType().name().endsWith("SHULKER_BOX")) {
             try {
@@ -206,10 +203,15 @@ public class ItemChecker {
     }
 
     public CheckedItem checkItem(ItemStack stack, Player p) {
+        return checkItem(stack, p, true);
+    }
+
+    public CheckedItem checkItem(ItemStack stack, Player p, boolean cache) {
         if (stack == null || stack.getType() == Material.AIR) return null;
         if (this.world.contains(p.getWorld().getName())) return null;
 
-        CheckedItem checkedItem = checked.get(stack);
+        ItemStack stackOne = stack.asOne();
+        CheckedItem checkedItem = checked.get(stackOne);
 
         if (checkedItem == null) {
             NbtCompound tag = (NbtCompound) MiniNbtFactory.fromItemTag(stack);
@@ -217,34 +219,37 @@ public class ItemChecker {
             int tagLength = tag != null ? tagString.length() : 0;
             boolean isHacked;
             try {
-                isHacked = checkNbtLength(tagLength, p) || checkShulkerBox(stack, p) || checkNbt(stack, tag, tagString, tagLength, p) || checkEnchants(stack, p);
+                isHacked = checkNbtLength(tagLength, p) || checkNbtLongArray(tag) || checkShulkerBox(stack, p) || checkNbt(stack, tag, tagString, tagLength, p) || checkEnchants(stack, p);
             } catch (Exception e) {
                 plugin.getLogger().severe("Не удалось обработать предмет игрока " + p.getName() + " - " + stack.getType().name() + " - " + tag);
                 e.printStackTrace();
                 isHacked = true;
             }
-            checkedItem = new CheckedItem(stack, tagLength, isHacked);
-            // кешируем результат на 30 секунд
-            checked.put(stack, checkedItem);
-            WeakReference<ItemStack> weakCache = new WeakReference<>(stack);
-            Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                ItemStack item = weakCache.get();
-                if (item != null) {
-                    checked.remove(item);
-                }
-            }, 600);
+            checkedItem = new CheckedItem(stackOne, tagLength, isHacked);
+            // кешируем результат на 10 секунд
+            if (cache) {
+                checked.put(stackOne, checkedItem);
+                WeakReference<ItemStack> weakCache = new WeakReference<>(stackOne);
+                Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                    ItemStack item = weakCache.get();
+                    if (item != null) {
+                        checked.remove(item);
+                    }
+                }, 200);
+            }
         }
 
         return checkedItem;
     }
 
     public void checkInventory(Inventory inventory, Player p) {
+        boolean hasBypass = plugin.hasFullBypass(p);
         ArrayList<ItemStack> checkedItems = new ArrayList<>(16);
         for (ItemStack stack : inventory.getContents()) {
             // пропускаем уже проверенные предметы,
             // ибо их уже не будет в инвентаре
             if (checkedItems.contains(stack)) continue;
-            if (isHacked(checkItem(stack, p))) {
+            if (isHacked(checkItem(stack, p, !hasBypass))) {
                 inventory.remove(stack);
             }
             checkedItems.add(stack);
@@ -254,6 +259,7 @@ public class ItemChecker {
     }
 
     private void checkOverFlowInventory(Inventory inventory, Player p) {
+        boolean hasBypass = plugin.hasFullBypass(p);
         int fullInventorSize = 0;
         ItemStack[] contents = inventory.getContents();
         Map<Integer, Integer> itemSizeMap = new HashMap<>(contents.length);
@@ -263,7 +269,7 @@ public class ItemChecker {
             ItemStack stack = contents[slot];
             if (stack == null || stack.getType() == Material.AIR) continue;
 
-            CheckedItem checkedItem = checkItem(stack, p);
+            CheckedItem checkedItem = checkItem(stack, p, !hasBypass);
             if (checkedItem == null) continue;
             int tagSize = checkedItem.tagLength;
             fullInventorSize += tagSize;
@@ -273,17 +279,69 @@ public class ItemChecker {
         // если размер инвентаря превышен,
         // то удаляем из него самые объемные предметы,
         // пока он не уменьшится до допустимых размеров
-        if (fullInventorSize > INV_MAX_NBT_LENGTH) {
+        final int maxNbtLength = p.hasPermission("itemfixer.bypass.nbtlength") ? PACKET_MAX_NBT_LENGTH : INV_MAX_NBT_LENGTH;
+        if (fullInventorSize > maxNbtLength) {
             for (Map.Entry<Integer, Integer> entry : itemSizeMap.entrySet().stream().sorted(Comparator.comparingInt((ToIntFunction<Map.Entry<Integer, Integer>>) Map.Entry::getValue).reversed()).collect(Collectors.toList())) {
                 inventory.setItem(entry.getKey(), null);
-                if ((fullInventorSize -= entry.getValue()) < INV_MAX_NBT_LENGTH) break;
+                if ((fullInventorSize -= entry.getValue()) < maxNbtLength) break;
             }
         }
     }
 
     private boolean checkNbtLength(int tagLength, Player p) {
+        if (tagLength > PACKET_MAX_NBT_LENGTH) return true;
         if (p.hasPermission("itemfixer.bypass.nbtlength")) return false;
         return tagLength > ITEM_MAX_NBT_LENGTH;
+    }
+
+    private boolean checkNbtLongArray(NbtCompound tag) {
+        if (tag == null) return false;
+
+        List<NbtBase<?>> toIterate = new ArrayList<>();
+        List<Iterable<?>> newToIterate = new ArrayList<>();
+
+        for (NbtBase<?> nbtBase : tag) {
+            toIterate.add(nbtBase);
+        }
+
+        while (true) {
+            for (NbtBase<?> child : toIterate) {
+                if (child.getType() == NbtType.TAG_LONG_ARRAY) {
+                    return true;
+                }
+
+                if (child instanceof NbtList) {
+                    NbtList<?> childList = (NbtList<?>) child;
+                    if (childList.size() == 0) continue;
+                    for (Object o : childList.asCollection()) {
+                        if (o instanceof NbtBase) {
+                            newToIterate.add(childList);
+                            break;
+                        }
+                    }
+                    continue;
+                }
+                if (child instanceof NbtCompound) {
+                    newToIterate.add((NbtCompound) child);
+                }
+            }
+
+            if (newToIterate.isEmpty()) {
+                break;
+            } else {
+                toIterate.clear();
+                for (Iterable<?> nbtBase : newToIterate) {
+                    for (Object base : nbtBase) {
+                        if (base instanceof NbtBase) {
+                            toIterate.add((NbtBase<?>) base);
+                        }
+                    }
+                }
+                newToIterate.clear();
+            }
+        }
+
+        return false;
     }
 
     private boolean checkBanner(ItemStack stack) {
@@ -337,6 +395,7 @@ public class ItemChecker {
     }
 
     static class CheckedItem {
+
         final ItemStack itemStack;
         final int tagLength;
         final boolean isHacked;

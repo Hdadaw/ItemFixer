@@ -42,7 +42,7 @@ public class NBTPacketListener extends PacketAdapter {
             event.setCancelled(true);
             return;
         }
-        if (event.getPacketType() == PacketType.Play.Client.SET_CREATIVE_SLOT && p.getGameMode() == GameMode.CREATIVE && !p.hasPermission("itemfixer.bypass.packet")) {
+        if (event.getPacketType() == PacketType.Play.Client.SET_CREATIVE_SLOT && p.getGameMode() == GameMode.CREATIVE) {
             this.proccessSetCreativeSlot(event, p);
         } else if (event.getPacketType() == PacketType.Play.Client.CUSTOM_PAYLOAD && plugin.isVersion1_8() && !p.hasPermission("itemfixer.bypass.packet")) {
             this.proccessCustomPayload(event, p);
@@ -53,7 +53,9 @@ public class NBTPacketListener extends PacketAdapter {
         ItemStack stack = event.getPacket().getItemModifier().readSafely(0);
         if (plugin.isHackItem(stack, p)) {
             event.setCancelled(true);
-            cancel.put(p, OBJECT);
+            if (!p.hasPermission("itemfixer.bypass.packet")) {
+                cancel.put(p, OBJECT);
+            }
         }
     }
 

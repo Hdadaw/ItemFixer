@@ -72,8 +72,6 @@ public class NBTBukkitListener implements Listener {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
-        if (plugin.hasFullBypass(event.getPlayer())) return;
-
         // сразу инвентарь почему-то не изменяется
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             plugin.checkInventory(event.getPlayer().getInventory(), event.getPlayer());
@@ -83,8 +81,6 @@ public class NBTBukkitListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onInventoryOpen(InventoryOpenEvent event) {
-        if (plugin.hasFullBypass((Player) event.getPlayer())) return;
-
         Location location = event.getInventory().getLocation();
         if (location == null) return;
 
