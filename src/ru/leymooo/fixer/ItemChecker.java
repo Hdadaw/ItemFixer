@@ -377,17 +377,62 @@ public class ItemChecker {
 
     private boolean checkMonsterEgg(NbtCompound tag) {
         NbtCompound enttag = tag.getCompound("EntityTag");
-        int size = enttag.getKeys().size();
-        if (size < 2) return false;
-        if (size > 2) return true;
+        if (enttag.getKeys().size() > 2) return true;
 
+        String id;
         try {
-            enttag.getString("id");
+            id = enttag.getString("id");
             enttag.getByte("Color");
-            return false;
         } catch (Exception e) {
             return true;
         }
+
+        if (id != null) {
+            switch (id.toLowerCase()) {
+                case "item":
+                case "xp_orb":
+                case "area_effect_cloud":
+                case "egg":
+                case "leash_knot":
+                case "painting":
+                case "arrow":
+                case "snowball":
+                case "fireball":
+                case "small_fireball":
+                case "ender_pearl":
+                case "eye_of_ender_signal":
+                case "potion":
+                case "xp_bottle":
+                case "item_frame":
+                case "wither_skull":
+                case "tnt":
+                case "falling_block":
+                case "fireworks_rocket":
+                case "spectral_arrow":
+                case "shulker_bullet":
+                case "dragon_fireball":
+                case "armor_stand":
+                case "evocation_fangs":
+                case "commandblock_minecart":
+                case "boat":
+                case "minecart":
+                case "chest_minecart":
+                case "furnace_minecart":
+                case "tnt_minecart":
+                case "hopper_minecart":
+                case "spawner_minecart":
+                case "giant":
+                case "ender_dragon":
+                case "wither":
+                case "snowman":
+                case "villager_golem":
+                case "llama_spit":
+                case "ender_crystal":
+                    return true;
+            }
+        }
+
+        return false;
     }
 
     boolean isHacked(CheckedItem checked) {
