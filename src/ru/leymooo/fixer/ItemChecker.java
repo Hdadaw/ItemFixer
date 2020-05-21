@@ -382,7 +382,10 @@ public class ItemChecker {
         String id;
         try {
             id = enttag.getString("id");
-            enttag.getByte("Color");
+            NbtBase<?> color = enttag.getValue("Color");
+            if (color != null && color.getType() != NbtType.TAG_BYTE) {
+                throw new IllegalArgumentException();
+            }
         } catch (Exception e) {
             return true;
         }
