@@ -1,5 +1,6 @@
 package ru.leymooo.fixer;
 
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
 import org.bukkit.event.EventHandler;
@@ -12,12 +13,11 @@ import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.Arrays;
-import java.util.EnumMap;
 import java.util.EnumSet;
 
 public class TextureFix implements Listener {
 
-    private final EnumMap<Material, Integer> limit = new EnumMap<>(Material.class);
+    private final Object2IntOpenHashMap<Material> limit = new Object2IntOpenHashMap<>();
     private final EnumSet<Material> ignore = EnumSet.noneOf(Material.class);
 
     public TextureFix(String version) {
@@ -93,6 +93,8 @@ public class TextureFix implements Listener {
         ignore.addAll(Arrays.asList(Material.GOLD_BOOTS, Material.GOLD_CHESTPLATE, Material.GOLD_HELMET, Material.GOLD_LEGGINGS));
         ignore.addAll(Arrays.asList(Material.DIAMOND_BOOTS, Material.DIAMOND_CHESTPLATE, Material.DIAMOND_HELMET, Material.DIAMOND_LEGGINGS));
         ignore.addAll(Arrays.asList(Material.CHAINMAIL_BOOTS, Material.CHAINMAIL_CHESTPLATE, Material.CHAINMAIL_HELMET, Material.CHAINMAIL_LEGGINGS));
+        limit.defaultReturnValue(-1);
+        limit.trim();
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
@@ -140,7 +142,7 @@ public class TextureFix implements Listener {
         }
 
         if (type != Material.AIR && durability != 0) {
-            int limit = this.limit.get(type);
+            int limit = this.limit.getInt(type);
             if (limit != -1) {
                 return (durability < 0 || (durability > limit));
             }

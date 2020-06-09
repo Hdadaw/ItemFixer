@@ -95,14 +95,15 @@ public class ItemChecker {
         if (!stack.hasItemMeta() || !stack.getItemMeta().hasEnchants()) return false;
         for (Map.Entry<Enchantment, Integer> ench : stack.getItemMeta().getEnchants().entrySet()) {
             Enchantment enchant = ench.getKey();
+            int level = ench.getValue();
             // проверка байпаса
-            if (p.hasPermission("itemfixer.allow." + stack.getType().toString() + "." + enchant.getName() + "." + ench.getValue())) {
+            if (p.hasPermission("itemfixer.allow." + stack.getType().toString() + "." + enchant.getName() + "." + level)) {
                 continue;
             }
             if (removeInvalidEnch && !enchant.canEnchantItem(stack)) {
                 return true;
             }
-            if (ench.getValue() > enchant.getMaxLevel() || ench.getValue() < 0) {
+            if (level > enchant.getMaxLevel() || level < 0) {
                 return true;
             }
         }
