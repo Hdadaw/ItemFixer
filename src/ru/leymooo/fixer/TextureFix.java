@@ -129,11 +129,22 @@ public class TextureFix implements Listener {
     }
 
     public boolean isInvalidTexture(ItemStack it) {
-        if (it != null && it.getType() != Material.AIR && it.getDurability() != 0) {
-            if (limit.containsKey(it.getType())) {
-                return (it.getDurability() < 0 || (it.getDurability() > limit.get(it.getType())));
+        if (it == null) return false;
+
+        Material type = it.getType();
+        short durability = it.getDurability();
+
+        // костыль на исключение 44:2
+        if (type == Material.STEP && durability == 2) {
+            return true;
+        }
+
+        if (type != Material.AIR && durability != 0) {
+            int limit = this.limit.get(type);
+            if (limit != -1) {
+                return (durability < 0 || (durability > limit));
             }
-            return !ignore.contains(it.getType());
+            return !ignore.contains(type);
         }
         return false;
     }
