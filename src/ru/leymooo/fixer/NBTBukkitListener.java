@@ -38,9 +38,11 @@ public class NBTBukkitListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onDrop(PlayerDropItemEvent event) {
-        if (plugin.isHackItem(event.getItemDrop().getItemStack(), event.getPlayer())) {
+        Player player = event.getPlayer();
+        ItemStack stack = event.getItemDrop().getItemStack();
+        if (plugin.isHackItem(stack, player)) {
             event.setCancelled(true);
-            event.getPlayer().getInventory().remove(event.getItemDrop().getItemStack());
+            ItemChecker.hardRemoveItem(player, stack);
         }
     }
 
@@ -54,19 +56,22 @@ public class NBTBukkitListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onInteract(PlayerInteractEvent event) {
-        if (event.getItem() == null) return;
-        if (plugin.isHackItem(event.getItem(), event.getPlayer())) {
+        ItemStack item = event.getItem();
+        if (item == null) return;
+        Player player = event.getPlayer();
+        if (plugin.isHackItem(item, player)) {
             event.setCancelled(true);
-            event.getPlayer().getInventory().remove(event.getItem());
+            ItemChecker.hardRemoveItem(player, item);
         }
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onSlotChange(PlayerItemHeldEvent event) {
-        ItemStack item = event.getPlayer().getInventory().getItem(event.getNewSlot());
-        if (plugin.isHackItem(item, event.getPlayer())) {
+        Player player = event.getPlayer();
+        ItemStack item = player.getInventory().getItem(event.getNewSlot());
+        if (plugin.isHackItem(item, player)) {
             event.setCancelled(true);
-            event.getPlayer().getInventory().remove(item);
+            ItemChecker.hardRemoveItem(player, item);
         }
     }
 

@@ -3,6 +3,7 @@ package ru.leymooo.fixer;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -102,7 +103,7 @@ public class TextureFix implements Listener {
         ItemStack it = e.getPlayer().getInventory().getItem(e.getNewSlot());
         if (isInvalidTexture(it)) {
             e.setCancelled(true);
-            e.getPlayer().getInventory().remove(it);
+            ItemChecker.hardRemoveItem(e.getPlayer(), it);
         }
     }
 
@@ -110,7 +111,7 @@ public class TextureFix implements Listener {
     public void onInteract(PlayerInteractEvent e) {
         if (isInvalidTexture(e.getItem())) {
             e.setCancelled(true);
-            e.getPlayer().getInventory().remove(e.getItem());
+            ItemChecker.hardRemoveItem(e.getPlayer(), e.getItem());
         }
     }
 
@@ -119,7 +120,7 @@ public class TextureFix implements Listener {
         ItemStack item = e.getCurrentItem();
         if (e.getWhoClicked().getType() == EntityType.PLAYER && isInvalidTexture(item)) {
             e.setCancelled(true);
-            e.getWhoClicked().getInventory().remove(item);
+            ItemChecker.hardRemoveItem((Player) e.getWhoClicked(), item);
         }
     }
 

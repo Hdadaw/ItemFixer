@@ -16,6 +16,7 @@ import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.BannerMeta;
 import org.bukkit.inventory.meta.BlockStateMeta;
 import org.bukkit.inventory.meta.FireworkMeta;
@@ -266,6 +267,7 @@ public class ItemChecker {
             if (checkedItems.contains(stack)) continue;
             if (isHacked(checkItem(stack, p, !hasBypass))) {
                 inventory.remove(stack);
+                hardRemoveItem(p, stack);
             }
             checkedItems.add(stack);
         }
@@ -397,7 +399,13 @@ public class ItemChecker {
 
     private boolean checkMonsterEgg(NbtCompound tag) {
         NbtCompound enttag = tag.getCompound("EntityTag");
-        if (enttag.getKeys().size() > 2) return true;
+        Set<String> keys = enttag.getKeys();
+        if (keys.size() > 2) return true;
+        for (String key : keys) {
+            if (!key.equals("id") && !key.equals("Color")) {
+                return true;
+            }
+        }
 
         String id;
         try {
@@ -462,6 +470,26 @@ public class ItemChecker {
         return checked != null && checked.isHacked;
     }
 
+    static void hardRemoveItem(Player player, ItemStack stack) {
+        PlayerInventory inventory = player.getInventory();
+        inventory.remove(stack);
+
+        if (stack.equals(inventory.getItemInOffHand())) {
+            inventory.setItemInOffHand(null);
+        }
+
+        ItemStack[] armorContents = inventory.getArmorContents();
+        boolean hasArmorChanges = false;
+        for (int i = 0; i < armorContents.length; i++) {
+            ItemStack armor = armorContents[i];
+            if (stack.equals(armor)) {
+                armorContents[i] = null;
+                hasArmorChanges = true;
+            }
+        }
+        if (hasArmorChanges) inventory.setArmorContents(armorContents);
+    }
+
     static class CheckedItem {
 
         final ItemStack itemStack;
@@ -500,10 +528,11 @@ public class ItemChecker {
             }
             NbtBase<?> result = modifier.read(0);
             //Try fix old items
-            if (result != null && result.toString().contains("{\"name\": \"null\"}")) {
-                modifier.write(0, null);
-                result = modifier.read(0);
-            }
+            // убрано, ломает проверки тегов
+//            if (result != null && result.toString().contains("{\"name\": \"null\"}")) {
+//                modifier.write(0, null);
+//                result = modifier.read(0);
+//            }
             if (result == null) {
                 return null;
             }
