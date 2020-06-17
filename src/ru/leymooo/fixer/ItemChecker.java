@@ -116,7 +116,7 @@ public class ItemChecker {
         if (p.hasPermission("itemfixer.bypass.nbt")) return false;
 
         Material mat = stack.getType();
-        if (this.isCrashItem(stack, tag, tagLength, mat)) {
+        if (this.isCrashItem(stack, tag, tagS, tagLength, mat)) {
             return true;
         }
         for (String nbt1 : nbt) {
@@ -128,8 +128,7 @@ public class ItemChecker {
             if (mat != Material.BANNER && (plugin.isVersion1_8() || mat != Material.SHIELD)) {
                 return !ignoreNbt.contains("BlockEntityTag");
             }
-        } else if (mat == Material.WRITTEN_BOOK && ((!ignoreNbt.contains("ClickEvent") && tagS.contains("ClickEvent"))
-                || (!ignoreNbt.contains("run_command") && tagS.contains("run_command")))) {
+        } else if (mat == Material.WRITTEN_BOOK && checkWrittenBook(tag, tagS)) {
             return true;
         } else if (mat == Material.MONSTER_EGG && !ignoreNbt.contains("EntityTag") && tag.containsKey("EntityTag") && checkMonsterEgg(tag)) {
             return true;
@@ -144,6 +143,20 @@ public class ItemChecker {
         } else
             return isPotion(stack) && (!ignoreNbt.contains("CustomPotionEffects") && tag.containsKey("CustomPotionEffects")
                     && (checkPotion(stack, p) || checkCustomColor(tag)));
+        return false;
+    }
+
+    private boolean checkWrittenBook(NbtCompound tag, String tagS) {
+        if (!ignoreNbt.contains("ClickEvent") && tagS.contains("ClickEvent")) return true;
+        if (!ignoreNbt.contains("run_command") && tagS.contains("run_command")) return true;
+
+        NbtList<String> pages = tag.getList("pages");
+        for (String page : pages) {
+            if (page.length() > 2000) {
+                return true;
+            }
+        }
+
         return false;
     }
 
@@ -366,13 +379,18 @@ public class ItemChecker {
         return meta.getPower() > 3 || meta.getEffectsSize() > 8;
     }
 
-    private boolean isCrashItem(ItemStack stack, NbtCompound tag, int tagL, Material mat) {
+    private boolean isCrashItem(ItemStack stack, NbtCompound tag, String tagS, int tagL, Material mat) {
         if (stack.getAmount() < 1 || stack.getAmount() > 64 || tag.getKeys().size() > 20) {
             return true;
         }
         if ((mat == Material.NAME_TAG || tiles.contains(mat)) && tagL > 600) {
             return true;
         }
+
+        // дебаг строки заботливо оставленные mojang,
+        // некоторые вызывают неизбежный краш клиента, а то и сервера
+        if (tagS.contains("translation.test.")) return true;
+
         if (isShulkerBox(stack)) return false;
         return mat == Material.WRITTEN_BOOK ? (tagL >= 16000) : (tagL >= 13000);
     }
