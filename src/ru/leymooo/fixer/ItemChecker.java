@@ -4,6 +4,8 @@ import com.comphenix.protocol.reflect.StructureModifier;
 import com.comphenix.protocol.wrappers.nbt.*;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
+import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import org.apache.commons.codec.binary.Base64;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
@@ -25,7 +27,6 @@ import java.lang.invoke.MethodHandles;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Method;
 import java.util.*;
-import java.util.function.ToIntFunction;
 import java.util.stream.Collectors;
 
 public class ItemChecker {
@@ -263,7 +264,7 @@ public class ItemChecker {
         boolean hasBypass = plugin.hasFullBypass(p);
         int fullInventorSize = 0;
         ItemStack[] contents = inventory.getContents();
-        Map<Integer, Integer> itemSizeMap = new HashMap<>(contents.length);
+        Int2IntMap itemSizeMap = new Int2IntArrayMap(contents.length);
 
         // вычисляем размеры всех предметов и инвентаря в целом
         for (int slot = 0; slot < contents.length; slot++) {
@@ -282,9 +283,9 @@ public class ItemChecker {
         // пока он не уменьшится до допустимых размеров
         final int maxNbtLength = p.hasPermission("itemfixer.bypass.nbtlength") ? PACKET_MAX_NBT_LENGTH : INV_MAX_NBT_LENGTH;
         if (fullInventorSize > maxNbtLength) {
-            for (Map.Entry<Integer, Integer> entry : itemSizeMap.entrySet().stream().sorted(Comparator.comparingInt((ToIntFunction<Map.Entry<Integer, Integer>>) Map.Entry::getValue).reversed()).collect(Collectors.toList())) {
-                inventory.setItem(entry.getKey(), null);
-                if ((fullInventorSize -= entry.getValue()) < maxNbtLength) break;
+            for (Int2IntMap.Entry entry : itemSizeMap.int2IntEntrySet().stream().sorted(Comparator.comparingInt(Int2IntMap.Entry::getIntValue).reversed()).collect(Collectors.toList())) {
+                inventory.setItem(entry.getIntKey(), null);
+                if ((fullInventorSize -= entry.getIntValue()) < maxNbtLength) break;
             }
         }
     }
