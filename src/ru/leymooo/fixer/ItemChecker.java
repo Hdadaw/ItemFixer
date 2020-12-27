@@ -152,6 +152,9 @@ public class ItemChecker {
         if (!ignoreNbt.contains("run_command") && tagS.contains("run_command")) return true;
 
         NbtList<String> pages = tag.getList("pages");
+        if (pages.size() > 50) {
+            return true;
+        }
         for (String page : pages) {
             if (page.length() > 2000) {
                 return true;
